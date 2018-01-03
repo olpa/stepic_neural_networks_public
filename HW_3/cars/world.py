@@ -29,7 +29,7 @@ class SimpleCarWorld(World):
     COLLISION_PENALTY =  3 # выберите сами
     HEADING_REWARD =  0 # выберите сами
     WRONG_HEADING_PENALTY = 0  # выберите сами
-    IDLENESS_PENALTY = 0 # выберите сами
+    IDLENESS_PENALTY = 0.3 # выберите сами
     SPEEDING_PENALTY = 0  # выберите сами
     MIN_SPEED = 0.1 # выберите сами
     MAX_SPEED = 15 # выберите сами
