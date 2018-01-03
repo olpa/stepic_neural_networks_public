@@ -73,10 +73,14 @@ class SimpleCarWorld(World):
             raise ValueError("Parameter agent should be int or list of agents instead of %s" % type(agents))
 
         self.agent_states = {a: CarState(pos, vel, heading) for a in self.agents}
+        self.agent_states_orig = self.copy_agent_states(self.agent_states)
         self.circles = {a: 0 for a in self.agents}
 
         self._agent_surfaces = []
         self._agent_images = []
+
+    def copy_agent_states(self, agst):
+        return agst.copy()
 
     def transition(self):
         """
@@ -86,6 +90,7 @@ class SimpleCarWorld(World):
          смена состояния
          и обработка реакции мира на выбранное действие
         """
+        restart = False
         for a in self.agents:
             vision = self.vision_for(a)
             action = a.choose_action(vision)
@@ -94,7 +99,10 @@ class SimpleCarWorld(World):
             )
             self.circles[a] += angle(self.agent_states[a].position, next_agent_state.position) / (2*pi)
             self.agent_states[a] = next_agent_state
-            a.receive_feedback(self.reward(next_agent_state, collision))
+            hint = a.receive_feedback(self.reward(next_agent_state, collision))
+            restart = restart or ("trained" == hint)
+        if restart:
+            self.agent_states = self.copy_agent_states(self.agent_states_orig)
 
     def reward(self, state, collision):
         """
@@ -135,7 +143,7 @@ class SimpleCarWorld(World):
         :param steps: количество шагов цикла; до внешней остановки, если None
         """
         scale = self._prepare_visualization()
-        for _ in range(steps) if steps is not None else itertools.count():
+        for stepno in range(steps) if steps is not None else itertools.count():
             self.transition()
             self.visualize(scale)
             if self._update_display() == pygame.QUIT:
