@@ -35,6 +35,10 @@ class SimpleCarAgent(Agent):
         self.neural_net = Network([self.rays + 4,
                                    # внутренние слои сети: выберите, сколько и в каком соотношении вам нужно
                                    # например, (self.rays + 4) * 2 или просто число
+# See notes of 03.01.2018 for explanation why such topology
+                                   self.rays + 4,
+                                   5,
+                                   5,
                                    1],
                                   output_function=lambda x: x, output_derivative=lambda x: 1)
         self.sensor_data_history = deque([], maxlen=history_data)
