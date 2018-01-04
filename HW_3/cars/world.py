@@ -101,8 +101,8 @@ class SimpleCarWorld(World):
             self.agent_states[a] = next_agent_state
             hint = a.receive_feedback(self.reward(next_agent_state, collision))
             restart = restart or ("trained" == hint)
-        if restart:
-            self.agent_states = self.copy_agent_states(self.agent_states_orig)
+        #if restart:
+        #    self.agent_states = self.copy_agent_states(self.agent_states_orig)
 
     def reward(self, state, collision):
         """
