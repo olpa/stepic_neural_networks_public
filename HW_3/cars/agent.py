@@ -134,7 +134,7 @@ class SimpleCarAgent(Agent):
 
         return best_action
 
-    def receive_feedback(self, reward, train_every=50, reward_depth=7):
+    def receive_feedback(self, reward, train_every=50, reward_depth=50):
         """
         Получить реакцию на последнее решение, принятое сетью, и проанализировать его
         :param reward: оценка внешним миром наших действий
@@ -149,10 +149,14 @@ class SimpleCarAgent(Agent):
         # чем дальше каждый раз домножая её на 1/2
         # (если мы врезались в стену - разумно наказывать не только последнее
         # действие, но и предшествующие)
+# olpa: use linear distribution over the whole history
         i = -1
+        last_reward = 0.1 * reward
+        reward_step = (reward - last_reward) / reward_depth
         while len(self.reward_history) > abs(i) and abs(i) < reward_depth:
+            print ("i:", i, ", reward: ", reward) # FIXME
             self.reward_history[i] += reward
-            reward *= 0.5
+            reward -= reward_step
             i -= 1
 
         # Если у нас накопилось хоть чуть-чуть данных, давайте потренируем нейросеть
