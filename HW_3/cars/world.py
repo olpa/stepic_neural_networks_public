@@ -31,6 +31,8 @@ class SimpleCarWorld(World):
     WRONG_HEADING_PENALTY = 0  # выберите сами
     IDLENESS_PENALTY = 0.3 # выберите сами
     SPEEDING_PENALTY = 0  # выберите сами
+    LIDAR_REWARD_FWD = 0.05 # usually not more than 10
+    LIDAR_PENALTY_NOTMIDDLE = 0.25
     MIN_SPEED = 0.1 # выберите сами
     MAX_SPEED = 15 # выберите сами
 
@@ -99,12 +101,12 @@ class SimpleCarWorld(World):
             )
             self.circles[a] += angle(self.agent_states[a].position, next_agent_state.position) / (2*pi)
             self.agent_states[a] = next_agent_state
-            hint = a.receive_feedback(self.reward(next_agent_state, collision))
+            hint = a.receive_feedback(self.reward(next_agent_state, collision, a))
             restart = restart or ("trained" == hint)
         #if restart:
         #    self.agent_states = self.copy_agent_states(self.agent_states_orig)
 
-    def reward(self, state, collision):
+    def reward(self, state, collision, agent):
         """
         Вычисление награды агента, находящегося в состоянии state.
         Эту функцию можно (и иногда нужно!) менять, чтобы обучить вашу сеть именно тем вещам, которые вы от неё хотите
@@ -125,7 +127,20 @@ class SimpleCarWorld(World):
         #agent_reward = self.agents[0].last_highest_reward
         #print("ag rew:", agent_reward) # FIXME
         #return (formula_reward + agent_reward / 32) / 2
-        return formula_reward
+
+        lidar_reward = self.lidar_reward(agent)
+        print("lidar reward:", lidar_reward) #FIXME
+
+        return formula_reward + lidar_reward
+
+    # Some forward-looking rays should be longer than left/right rays
+    def lidar_reward(self, agent):
+        v = self.vision_for(agent)
+        v = v[2:]
+        side_dist = max(v[0], v[-1])
+        side_dist_delta = abs(v[0] - v[-1])
+        fwd_dist = v[len(v) // 2]
+        return self.LIDAR_REWARD_FWD * int(fwd_dist > side_dist) - self.LIDAR_PENALTY_NOTMIDDLE * side_dist_delta
 
     def eval_reward(self, state, collision):
         """
