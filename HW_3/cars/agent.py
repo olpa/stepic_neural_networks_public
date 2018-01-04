@@ -44,6 +44,7 @@ class SimpleCarAgent(Agent):
         self.sensor_data_history = deque([], maxlen=history_data)
         self.chosen_actions_history = deque([], maxlen=history_data)
         self.reward_history = deque([], maxlen=history_data)
+        self.last_highest_reward = 0.0
         self.step = 0
 
     @classmethod
@@ -127,6 +128,7 @@ class SimpleCarAgent(Agent):
             print("Chosen action w/reward: {}".format(highest_reward))
 
         # запомним всё, что только можно: мы хотим учиться на своих ошибках
+        self.last_highest_reward = highest_reward
         self.sensor_data_history.append(sensor_info)
         self.chosen_actions_history.append(best_action)
         self.reward_history.append(0.0)  # мы пока не знаем, какая будет награда, это
