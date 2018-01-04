@@ -124,7 +124,7 @@ class SimpleCarWorld(World):
 
         agent_reward = self.agents[0].last_highest_reward
         print("ag rew:", agent_reward) # FIXME
-        return (formula_reward + agent_reward) / 2
+        return (formula_reward + agent_reward / 32) / 2
 
     def eval_reward(self, state, collision):
         """
