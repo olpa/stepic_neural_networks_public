@@ -122,10 +122,7 @@ class SimpleCarWorld(World):
         formula_reward = heading_reward * self.HEADING_REWARD + heading_penalty * self.WRONG_HEADING_PENALTY + collision_penalty \
                + idle_penalty + speeding_penalty
 
-        try:
-            agent_reward = self.agents[0].reward_history[-2]
-        except IndexError:
-            agent_reward = 0
+        agent_reward = self.agents[0].last_highest_reward
         print("ag rew:", agent_reward) # FIXME
         return (formula_reward + agent_reward) / 2
 
