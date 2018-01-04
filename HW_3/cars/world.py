@@ -122,9 +122,10 @@ class SimpleCarWorld(World):
         formula_reward = heading_reward * self.HEADING_REWARD + heading_penalty * self.WRONG_HEADING_PENALTY + collision_penalty \
                + idle_penalty + speeding_penalty
 
-        agent_reward = self.agents[0].last_highest_reward
-        print("ag rew:", agent_reward) # FIXME
-        return (formula_reward + agent_reward / 32) / 2
+        #agent_reward = self.agents[0].last_highest_reward
+        #print("ag rew:", agent_reward) # FIXME
+        #return (formula_reward + agent_reward / 32) / 2
+        return formula_reward
 
     def eval_reward(self, state, collision):
         """
