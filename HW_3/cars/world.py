@@ -119,8 +119,15 @@ class SimpleCarWorld(World):
         speeding_penalty = 0 if abs(state.velocity) < self.MAX_SPEED else -self.SPEEDING_PENALTY * abs(state.velocity)
         collision_penalty = - max(abs(state.velocity), 0.1) * int(collision) * self.COLLISION_PENALTY
 
-        return heading_reward * self.HEADING_REWARD + heading_penalty * self.WRONG_HEADING_PENALTY + collision_penalty \
+        formula_reward = heading_reward * self.HEADING_REWARD + heading_penalty * self.WRONG_HEADING_PENALTY + collision_penalty \
                + idle_penalty + speeding_penalty
+
+        try:
+            agent_reward = self.agents[0].reward_history[-2]
+        except IndexError:
+            agent_reward = 0
+        print("ag rew:", agent_reward) # FIXME
+        return (formula_reward + agent_reward) / 2
 
     def eval_reward(self, state, collision):
         """
