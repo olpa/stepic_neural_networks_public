@@ -30,6 +30,6 @@ if args.filename:
         print(w.evaluate_agent(agent, steps))
     else:
         w.set_agents([agent])
-        w.run(steps)
+        w.run(steps, 100)
 else:
     SimpleCarWorld(1, m, SimplePhysics, SimpleCarAgent, timedelta=0.2).run(steps)

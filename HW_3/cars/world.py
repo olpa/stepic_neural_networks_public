@@ -53,6 +53,9 @@ class SimpleCarWorld(World):
 
         # создаём агентов
         self.learner = Learner(self.N_RAYS)
+
+        self.num_agents = num_agents
+        self.agent_class = agent_class
         self.set_agents(num_agents, agent_class)
 
         self._info_surface = pygame.Surface(self.size)
@@ -132,18 +135,20 @@ class SimpleCarWorld(World):
         return heading_reward * self.HEADING_REWARD + heading_penalty * self.WRONG_HEADING_PENALTY + collision_penalty \
             + idle_penalty + speeding_penalty
 
-    def run(self, steps=None):
+    def run(self, n_episodes, n_steps=None):
         """
         Основной цикл мира; по завершении сохраняет текущие веса агента в файл network_config_agent_n_layers_....txt
-        :param steps: количество шагов цикла; до внешней остановки, если None
+        :param n_steps: количество шагов цикла; до внешней остановки, если None
         """
         scale = self._prepare_visualization()
-        for _ in range(steps) if steps is not None else itertools.count():
-            self.transition()
-            self.visualize(scale)
-            if self._update_display() == pygame.QUIT:
-                break
-            sleep(0.1)
+        for __ in range(n_episodes) if n_episodes is not None else itertools.count():
+            self.set_agents(self.num_agents, self.agent_class)
+            for _ in range(n_steps) if n_steps is not None else itertools.count():
+                self.transition()
+                self.visualize(scale)
+                if self._update_display() == pygame.QUIT:
+                    break
+                sleep(0.1)
 
         for i, agent in enumerate(self.agents):
             try:
