@@ -10,6 +10,7 @@ import pygame
 from cars.agent import SimpleCarAgent
 from cars.track import plot_map
 from cars.utils import CarState, to_px, rotate, intersect_ray_with_segment, draw_text, angle
+from cars.Learner import Learner
 
 black = (0, 0, 0)
 white = (255, 255, 255)
@@ -33,6 +34,7 @@ class SimpleCarWorld(World):
     SPEEDING_PENALTY = 1  # выберите сами
     MIN_SPEED = 0.1 # выберите сами
     MAX_SPEED = 5 # выберите сами
+    N_RAYS = 7 # Number of rays
 
     size = (800, 600)
 
@@ -50,6 +52,7 @@ class SimpleCarWorld(World):
         self.map = car_map
 
         # создаём агентов
+        self.learner = Learner(self.N_RAYS)
         self.set_agents(num_agents, agent_class)
 
         self._info_surface = pygame.Surface(self.size)
@@ -66,7 +69,7 @@ class SimpleCarWorld(World):
         heading = rect(-0.3, 1)
 
         if type(agents) is int:
-            self.agents = [agent_class() for _ in range(agents)]
+            self.agents = [agent_class(n_rays=self.N_RAYS, learner=self.learner) for _ in range(agents)]
         elif type(agents) is list:
             self.agents = agents
         else:
@@ -94,7 +97,7 @@ class SimpleCarWorld(World):
             )
             self.circles[a] += angle(self.agent_states[a].position, next_agent_state.position) / (2*pi)
             self.agent_states[a] = next_agent_state
-            a.receive_feedback(self.reward(next_agent_state, collision))
+            self.learner.receive_feedback(self.reward(next_agent_state, collision))
 
     def reward(self, state, collision):
         """
@@ -235,9 +238,9 @@ class SimpleCarWorld(World):
 
         if len(self.agents) == 1:
             a = self.agents[0]
-            draw_text("Reward: %.3f" % a.reward_history[-1], self._info_surface, scale, self.size,
+            draw_text("Reward: %.3f" % self.learner.reward_history[-1], self._info_surface, scale, self.size,
                       text_color=white, bg_color=black)
-            steer, acc = a.chosen_actions_history[-1]
+            steer, acc = self.learner.chosen_actions_history[-1]
             state = self.agent_states[a]
             draw_text("Action: steer.: %.2f, accel: %.2f" % (steer, acc), self._info_surface, scale,
                       self.size, text_color=white, bg_color=black, tlpoint=(self._info_surface.get_width() - 500, 10))
