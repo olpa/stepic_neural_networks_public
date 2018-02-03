@@ -1,0 +1,35 @@
+My classes:
+
+StateAndAction
+state
+action
+
+Learner
+Q-Values[]
+Neural Network
+alpha
+gamma
+submit_reward()
+commit()
+
+Agent
+get_pos() for reward
+get_state()
+get_legal_actions()
+
+World/Environment
+calc_reward(agent)
+calc_next_agent_state()
+
+
+ActionStrategy
+alpha
+gamma
+epsilon
+select_action()
+
+Episode
+play_episode()
+learner
+strategy
+world
