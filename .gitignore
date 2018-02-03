@@ -1,1 +1,5 @@
-.ipynb_checkpoints
+__pycache__
+*.pyc
+*.swp
+*~
+network_config_agent_*_layers_*.txt
