@@ -97,14 +97,19 @@ class SimpleCarWorld(World):
          и обработка реакции мира на выбранное действие
         """
         for a in self.agents:
-            vision = self.vision_for(a)
-            action = a.choose_action(vision)
+            vision = self.vision_for(a) # s_t
+            action = a.choose_action(vision) # a_t
             next_agent_state, collision = self.physics.move(
                 self.agent_states[a], action
             )
             self.circles[a] += angle(self.agent_states[a].position, next_agent_state.position) / (2*pi)
             self.agent_states[a] = next_agent_state
-            self.learner.receive_feedback(self.reward(next_agent_state, collision))
+            reward = self.reward(next_agent_state, collision) # r_t
+            if collision:
+                self.learner.update_final_qvalue(vision, action, reward)
+                raise EpisodeFinished
+            else:
+                self.learner.update_qvalue(vision, action, reward, a, next_agent_state)
 
     def reward(self, state, collision):
         """

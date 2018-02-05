@@ -86,9 +86,7 @@ class SimpleCarAgent(Agent):
         for steering in np.linspace(-1, 1, 3):  # выбирать можно и другую частоту дискретизации, но
             for acceleration in np.linspace(-0.75, 0.75, 3):  # в наших тестах будет именно такая
                 action = Action(steering, acceleration)
-                agent_vector_representation = np.append(sensor_info, action)
-                agent_vector_representation = agent_vector_representation.flatten()[:, np.newaxis]
-                predicted_reward = self.learner.predict_reward(agent_vector_representation)
+                predicted_reward = self.learner.predict_reward(sensor_info, action)
                 rewards_to_controls_map[predicted_reward] = action
 
         # ищем действие, которое обещает максимальную награду

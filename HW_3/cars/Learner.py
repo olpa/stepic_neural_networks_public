@@ -24,6 +24,9 @@ class Learner:
         self.reward_history.append(0.0)  # мы пока не знаем, какая будет награда, это
         # откроется при вызове метода receive_feedback внешним миром
 
+    def update_qvalue(self, state, action, reward, agent, next_agent_state):
+        print (state, action)
+
     def receive_feedback(self, reward, train_every=50, reward_depth=7):
         """
         Получить реакцию на последнее решение, принятое сетью, и проанализировать его
@@ -55,5 +58,13 @@ class Learner:
             train_data = [(x[:, np.newaxis], y) for x, y in zip(X_train, y_train)]
             self.neural_net.SGD(training_data=train_data, epochs=15, mini_batch_size=train_every, eta=0.05)
 
-    def predict_reward(self, agent_vector_representation):
+    def predict_reward(self, state, action):
+        agent_vector_representation = self.state_and_action_to_vector(state, action)
         return float(self.neural_net.feedforward(agent_vector_representation))
+
+    def state_and_action_to_vector(self, state, action):
+        agent_vector_representation = np.append(state, action)
+        print ("M1", agent_vector_representation) # FIXME
+        #agent_vector_representation = agent_vector_representation.flatten()[:, np.newaxis]
+        #print ("M2", agent_vector_representation) # FIXME
+        return agent_vector_representation
