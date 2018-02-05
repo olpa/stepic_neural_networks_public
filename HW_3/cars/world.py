@@ -67,9 +67,6 @@ class SimpleCarWorld(World):
          agents агентов класса agent_class; если список, то в мир попадут все агенты из списка
         :param agent_class: класс создаваемых агентов, если agents - это int
         """
-        pos = (self.map[0][0] + self.map[0][1]) / 2
-        vel = 0
-        heading = rect(-0.3, 1)
 
         if type(agents) is int:
             self.agents = [agent_class(n_rays=self.N_RAYS, learner=self.learner) for _ in range(agents)]
@@ -78,11 +75,18 @@ class SimpleCarWorld(World):
         else:
             raise ValueError("Parameter agent should be int or list of agents instead of %s" % type(agents))
 
-        self.agent_states = {a: CarState(pos, vel, heading) for a in self.agents}
-        self.circles = {a: 0 for a in self.agents}
-
         self._agent_surfaces = []
         self._agent_images = []
+
+        self.reset_agents()
+
+    def reset_agents(self):
+        pos = (self.map[0][0] + self.map[0][1]) / 2
+        vel = 0
+        heading = rect(-0.3, 1)
+
+        self.agent_states = {a: CarState(pos, vel, heading) for a in self.agents}
+        self.circles = {a: 0 for a in self.agents}
 
     def transition(self):
         """
@@ -141,14 +145,18 @@ class SimpleCarWorld(World):
         :param n_steps: количество шагов цикла; до внешней остановки, если None
         """
         scale = self._prepare_visualization()
+        done = False
         for __ in range(n_episodes) if n_episodes is not None else itertools.count():
-            self.set_agents(self.num_agents, self.agent_class)
+            self.reset_agents()
             for _ in range(n_steps) if n_steps is not None else itertools.count():
                 self.transition()
                 self.visualize(scale)
                 if self._update_display() == pygame.QUIT:
+                    done = True
                     break
                 sleep(0.1)
+            if done:
+                break
 
         for i, agent in enumerate(self.agents):
             try:

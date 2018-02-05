@@ -1,5 +1,6 @@
 from collections import deque
 from learning_algorithms.network import Network
+import numpy as np
 
 class Learner:
 
