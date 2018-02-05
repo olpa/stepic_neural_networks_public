@@ -16,6 +16,9 @@ black = (0, 0, 0)
 white = (255, 255, 255)
 
 
+class EpisodeFinished(Exception):
+    pass
+
 class World(metaclass=ABCMeta):
     @abstractmethod
     def transition(self):
@@ -107,7 +110,7 @@ class SimpleCarWorld(World):
             reward = self.reward(next_agent_state, collision) # r_t
             if collision:
                 self.learner.update_final_qvalue(vision, action, reward)
-                raise EpisodeFinished
+                raise EpisodeFinished()
             else:
                 self.learner.update_qvalue(vision, action, reward, a, next_agent_state)
 
@@ -154,7 +157,10 @@ class SimpleCarWorld(World):
         for __ in range(n_episodes) if n_episodes is not None else itertools.count():
             self.reset_agents()
             for _ in range(n_steps) if n_steps is not None else itertools.count():
-                self.transition()
+                try:
+                    self.transition()
+                except EpisodeFinished:
+                    break
                 self.visualize(scale)
                 if self._update_display() == pygame.QUIT:
                     done = True
