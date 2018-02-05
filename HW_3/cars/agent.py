@@ -80,6 +80,18 @@ class SimpleCarAgent(Agent):
         return self._rays
 
     def choose_action(self, sensor_info):
+        choose_random = (not self.evaluate_mode) and (random.random() < 0.05)
+        (action, reward) = self.best_action_and_reward(sensor_info, choose_random=choose_random)
+        self.learner.remember_history(sensor_info, action)
+        return action
+
+    # what after gamma:
+    # max{a} Q(s_{t+1}, a)
+    def estimate_of_optimal(self, sensor_info):
+        (action, reward) = self.best_action_and_reward(sensor_info, choose_random=False)
+        return reward
+
+    def best_action_and_reward(self, sensor_info, choose_random):
         # хотим предсказать награду за все действия, доступные из текущего состояния
         rewards_to_controls_map = {}
         # дискретизируем множество значений, так как все возможные мы точно предсказать не сможем
@@ -96,7 +108,7 @@ class SimpleCarAgent(Agent):
 
         # Добавим случайности, дух авантюризма. Иногда выбираем совершенно
         # рандомное действие
-        if (not self.evaluate_mode) and (random.random() < 0.05):
+        if choose_random:
             highest_reward = rewards[np.random.choice(len(rewards))]
             best_action = rewards_to_controls_map[highest_reward]
         # следующие строки помогут вам понять, что предсказывает наша сеть
@@ -104,7 +116,4 @@ class SimpleCarAgent(Agent):
         # else:
         #     print("Chosen action w/reward: {}".format(highest_reward))
 
-        self.learner.remember_history(sensor_info, best_action)
-
-        return best_action
-
+        return (best_action, highest_reward)
