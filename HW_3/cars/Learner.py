@@ -18,6 +18,9 @@ class Learner:
         self.step = 0
         self.q_table = {}
 
+        self.ALPHA = 0.1
+        self.GAMMA = 0.8
+
     def remember_history(self, sensor_info, best_action):
         # запомним всё, что только можно: мы хотим учиться на своих ошибках
         self.sensor_data_history.append(sensor_info)
@@ -69,7 +72,6 @@ class Learner:
 
     def predict_reward(self, state, action):
         agent_vector_representation = self.state_and_action_to_neunet_vector(state, action)
-        print ("ag_ve_re:", agent_vector_representation) # FIXME
         return float(self.neural_net.feedforward(agent_vector_representation))
 
     # Vector is horizontal
