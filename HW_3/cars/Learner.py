@@ -39,6 +39,9 @@ class Learner:
         stac = self.state_and_action_to_vector(state, action)
         self.q_table[stac] = reward
 
+    def learn(self):
+        print ("Learn: TODO") # FIXME
+
     def receive_feedback(self, reward, train_every=50, reward_depth=7):
         """
         Получить реакцию на последнее решение, принятое сетью, и проанализировать его

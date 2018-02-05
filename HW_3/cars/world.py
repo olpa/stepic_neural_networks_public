@@ -167,6 +167,8 @@ class SimpleCarWorld(World):
                     done = True
                     break
                 sleep(0.1)
+            if not done:
+                self.learner.learn()
             if done:
                 break
 
