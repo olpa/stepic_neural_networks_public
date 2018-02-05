@@ -26,8 +26,11 @@ class Learner:
         # откроется при вызове метода receive_feedback внешним миром
 
     def update_qvalue(self, state, action, reward, agent, next_agent_state):
+        old_qvalue = self.predict_reward(state, action)
+        estimate_of_optimal = agent.estimate_of_optimal(next_agent_state)
+        new_qvalue = (1 - self.ALPHA) * old_qvalue + self.ALPHA * (reward + self.GAMMA * estimate_of_optimal)
         stac = self.state_and_action_to_vector(state, action)
-        self.q_table[stac] = reward
+        self.q_table[stac] = new_qvalue
 
     def update_final_qvalue(self, state, action, reward):
         stac = self.state_and_action_to_vector(state, action)
@@ -65,7 +68,8 @@ class Learner:
             self.neural_net.SGD(training_data=train_data, epochs=15, mini_batch_size=train_every, eta=0.05)
 
     def predict_reward(self, state, action):
-        agent_vector_representation = self.state_and_action_to_vector(state, action)
+        agent_vector_representation = self.state_and_action_to_neunet_vector(state, action)
+        print ("ag_ve_re:", agent_vector_representation) # FIXME
         return float(self.neural_net.feedforward(agent_vector_representation))
 
     # Vector is horizontal
@@ -74,3 +78,9 @@ class Learner:
         # It would make the vector vertical
         #agent_vector_representation = agent_vector_representation.flatten()[:, np.newaxis]
         return tuple(agent_vector_representation)
+
+    def state_and_action_to_neunet_vector(self, state, action):
+        agent_vector_representation = np.append(state, action)
+        agent_vector_representation = agent_vector_representation.flatten()[:, np.newaxis]
+        return agent_vector_representation
+
