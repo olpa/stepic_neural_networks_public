@@ -16,6 +16,7 @@ class Learner:
                                    1],
                                   output_function=lambda x: x, output_derivative=lambda x: 1)
         self.step = 0
+        self.q_table = {}
 
     def remember_history(self, sensor_info, best_action):
         # запомним всё, что только можно: мы хотим учиться на своих ошибках
@@ -25,7 +26,12 @@ class Learner:
         # откроется при вызове метода receive_feedback внешним миром
 
     def update_qvalue(self, state, action, reward, agent, next_agent_state):
-        print (state, action)
+        stac = self.state_and_action_to_vector(state, action)
+        self.q_table[stac] = reward
+
+    def update_final_qvalue(self, state, action, reward):
+        stac = self.state_and_action_to_vector(state, action)
+        self.q_table[stac] = reward
 
     def receive_feedback(self, reward, train_every=50, reward_depth=7):
         """
@@ -62,9 +68,9 @@ class Learner:
         agent_vector_representation = self.state_and_action_to_vector(state, action)
         return float(self.neural_net.feedforward(agent_vector_representation))
 
+    # Vector is horizontal
     def state_and_action_to_vector(self, state, action):
         agent_vector_representation = np.append(state, action)
-        print ("M1", agent_vector_representation) # FIXME
+        # It would make the vector vertical
         #agent_vector_representation = agent_vector_representation.flatten()[:, np.newaxis]
-        #print ("M2", agent_vector_representation) # FIXME
-        return agent_vector_representation
+        return tuple(agent_vector_representation)
