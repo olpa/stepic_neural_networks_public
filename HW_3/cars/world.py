@@ -112,7 +112,8 @@ class SimpleCarWorld(World):
                 self.learner.update_final_qvalue(vision, action, reward)
                 raise EpisodeFinished()
             else:
-                self.learner.update_qvalue(vision, action, reward, a, next_agent_state)
+                next_vision = self.vision_for(a, next_agent_state)
+                self.learner.update_qvalue(vision, action, reward, a, next_vision)
 
     def reward(self, state, collision):
         """
@@ -208,14 +209,16 @@ class SimpleCarWorld(World):
 
         return np.mean(rewards)
 
-    def vision_for(self, agent):
+    def vision_for(self, agent, state=None):
         """
         Строит видение мира для каждого агента
         :param agent: машинка, из которой мы смотрим
         :return: список из модуля скорости машинки, направленного угла между направлением машинки
         и направлением на центр и `agent.rays` до ближайших стен трека (запустите картинку, и станет совсем понятно)
+        :state: Force the position of the agent, otherwise the current position is used
         """
-        state = self.agent_states[agent]
+        if state is None:
+            state = self.agent_states[agent]
         vision = [abs(state.velocity), np.sin(angle(-state.position, state.heading))]
         extras = len(vision)
 
