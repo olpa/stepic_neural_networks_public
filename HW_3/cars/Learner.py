@@ -40,7 +40,12 @@ class Learner:
         self.q_table[stac] = reward
 
     def learn(self):
-        print ("Learn: TODO") # FIXME
+        def tuple_to_ndvector(x):
+            v = np.asarray(x)
+            v = v.flatten()[:, np.newaxis]
+            return v
+        training_data = [(tuple_to_ndvector(x),y) for (x,y) in self.q_table.items()]
+        self.neural_net.SGD(training_data=training_data, epochs=15, mini_batch_size=50, eta=0.05)
 
     def receive_feedback(self, reward, train_every=50, reward_depth=7):
         """
