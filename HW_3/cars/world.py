@@ -31,7 +31,7 @@ class World(metaclass=ABCMeta):
 
 class SimpleCarWorld(World):
     COLLISION_PENALTY =  3 # выберите сами
-    HEADING_REWARD =  3 # выберите сами
+    HEADING_REWARD =  0 # выберите сами
     WRONG_HEADING_PENALTY = 3  # выберите сами
     IDLENESS_PENALTY = 1 # выберите сами
     SPEEDING_PENALTY = 1  # выберите сами
