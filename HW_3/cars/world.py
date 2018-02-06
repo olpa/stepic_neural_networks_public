@@ -12,6 +12,8 @@ from cars.track import plot_map
 from cars.utils import CarState, to_px, rotate, intersect_ray_with_segment, draw_text, angle
 from cars.Learner import Learner
 
+import learning_algorithms.network
+
 black = (0, 0, 0)
 white = (255, 255, 255)
 
@@ -172,13 +174,9 @@ class SimpleCarWorld(World):
             if done:
                 break
 
-        for i, agent in enumerate(self.agents):
-            try:
-                filename = "network_config_agent_%d_layers_%s.txt" % (i, "_".join(map(str, agent.neural_net.sizes)))
-                agent.to_file(filename)
-                print("Saved agent parameters to '%s'" % filename)
-            except AttributeError:
-                pass
+        filename = "network_config_learner_layers_%s.txt" % ("_".join(map(str, self.learner.neural_net.sizes)))
+        learning_algorithms.network.to_file(self.learner.neural_net, filename)
+        print("Saved neural network parameters to '%s'" % filename)
 
     def evaluate_agent(self, agent, steps=1000, visual=True):
         """

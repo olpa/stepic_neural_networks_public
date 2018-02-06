@@ -186,3 +186,49 @@ class Network(object):
         целевой функции по активациям выходного слоя.
         """
         return output_activations - y
+
+# More help functions
+
+def from_weights(layers, weights, biases):
+    #agent = SimpleCarAgent()
+    #agent._rays = weights[0].shape[1] - 4
+    nn = Network(layers, output_function=lambda x: x, output_derivative=lambda x: 1)
+
+    if len(weights) != len(nn.weights):
+        raise AssertionError("You provided %d weight matrices instead of %d" % (len(weights), len(nn.weights)))
+    for i, (w, right_w) in enumerate(zip(weights, nn.weights)):
+        if w.shape != right_w.shape:
+            raise AssertionError("weights[%d].shape = %s instead of %s" % (i, w.shape, right_w.shape))
+    nn.weights = weights
+
+    if len(biases) != len(nn.biases):
+        raise AssertionError("You provided %d bias vectors instead of %d" % (len(weights), len(nn.weights)))
+    for i, (b, right_b) in enumerate(zip(biases, nn.biases)):
+        if b.shape != right_b.shape:
+            raise AssertionError("biases[%d].shape = %s instead of %s" % (i, b.shape, right_b.shape))
+    nn.biases = biases
+
+    #agent.neural_net = nn
+    #return agent
+
+    return nn
+
+def from_string(s):
+    from numpy import array  # это важный импорт, без него не пройдёт нормально eval
+    layers, weights, biases = eval(s.replace("\n", ""), locals())
+    return from_weights(layers, weights, biases)
+
+def from_file(filename):
+    c = open(filename, "r").read()
+    return cls.from_string(c)
+
+def show_weights(neural_net):
+    params = neural_net.sizes, neural_net.weights, neural_net.biases
+    np.set_printoptions(threshold=np.nan)
+    return repr(params)
+
+def to_file(neural_net, filename):
+    c = show_weights(neural_net)
+    f = open(filename, "w")
+    f.write(c)
+    f.close()

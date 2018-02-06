@@ -26,55 +26,6 @@ class SimpleCarAgent(Agent):
         self._rays = n_rays
         self.learner = learner
 
-    @classmethod
-    def from_weights(cls, layers, weights, biases):
-        """
-        Создание агента по параметрам его нейронной сети. Разбираться не обязательно.
-        """
-        agent = SimpleCarAgent()
-        agent._rays = weights[0].shape[1] - 4
-        nn = Network(layers, output_function=lambda x: x, output_derivative=lambda x: 1)
-
-        if len(weights) != len(nn.weights):
-            raise AssertionError("You provided %d weight matrices instead of %d" % (len(weights), len(nn.weights)))
-        for i, (w, right_w) in enumerate(zip(weights, nn.weights)):
-            if w.shape != right_w.shape:
-                raise AssertionError("weights[%d].shape = %s instead of %s" % (i, w.shape, right_w.shape))
-        nn.weights = weights
-
-        if len(biases) != len(nn.biases):
-            raise AssertionError("You provided %d bias vectors instead of %d" % (len(weights), len(nn.weights)))
-        for i, (b, right_b) in enumerate(zip(biases, nn.biases)):
-            if b.shape != right_b.shape:
-                raise AssertionError("biases[%d].shape = %s instead of %s" % (i, b.shape, right_b.shape))
-        nn.biases = biases
-
-        agent.neural_net = nn
-
-        return agent
-
-    @classmethod
-    def from_string(cls, s):
-        from numpy import array  # это важный импорт, без него не пройдёт нормально eval
-        layers, weights, biases = eval(s.replace("\n", ""), locals())
-        return cls.from_weights(layers, weights, biases)
-
-    @classmethod
-    def from_file(cls, filename):
-        c = open(filename, "r").read()
-        return cls.from_string(c)
-
-    def show_weights(self):
-        params = self.neural_net.sizes, self.neural_net.weights, self.neural_net.biases
-        np.set_printoptions(threshold=np.nan)
-        return repr(params)
-
-    def to_file(self, filename):
-        c = self.show_weights()
-        f = open(filename, "w")
-        f.write(c)
-        f.close()
-
     @property
     def rays(self):
         return self._rays
