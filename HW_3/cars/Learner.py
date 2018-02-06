@@ -13,6 +13,8 @@ class Learner:
         self.neural_net = Network([n_rays + 4,
                                    # внутренние слои сети: выберите, сколько и в каком соотношении вам нужно
                                    # например, (self.rays + 4) * 2 или просто число
+                                   n_rays + 4,
+                                   (n_rays + 4) // 2,
                                    1],
                                   output_function=lambda x: x, output_derivative=lambda x: 1)
         self.step = 0
