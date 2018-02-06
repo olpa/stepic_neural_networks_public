@@ -3,3 +3,4 @@ __pycache__
 *.swp
 *~
 network_config_agent_*_layers_*.txt
+network_config_learner_layers_*.txt
