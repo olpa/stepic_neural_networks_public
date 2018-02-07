@@ -23,6 +23,9 @@ class Learner:
         self.ALPHA = 0.1
         self.GAMMA = 0.8
 
+        self.last_reward = 0
+        self.last_qvalue = 0
+
     def remember_history(self, sensor_info, best_action):
         # запомним всё, что только можно: мы хотим учиться на своих ошибках
         self.sensor_data_history.append(sensor_info)
@@ -36,11 +39,15 @@ class Learner:
         new_qvalue = (1 - self.ALPHA) * old_qvalue + self.ALPHA * (reward + self.GAMMA * estimate_of_optimal)
         stac = self.state_and_action_to_vector(state, action)
         self.q_table[stac] = new_qvalue
+        self.last_reward = reward
+        self.last_qvalue = new_qvalue
         print("Q value update. New: %.4f, old: %.4f, reward: %.4f, estimate: %.4f" % (new_qvalue, old_qvalue, reward, estimate_of_optimal))
 
     def update_final_qvalue(self, state, action, reward):
         stac = self.state_and_action_to_vector(state, action)
         self.q_table[stac] = reward
+        self.last_reward = reward
+        self.last_qvalue = reward
         print("Q value final: %.4f" % reward)
 
     def learn(self):

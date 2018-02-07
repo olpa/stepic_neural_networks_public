@@ -220,7 +220,7 @@ def from_string(s):
 
 def from_file(filename):
     c = open(filename, "r").read()
-    return cls.from_string(c)
+    return from_string(c)
 
 def show_weights(neural_net):
     params = neural_net.sizes, neural_net.weights, neural_net.biases

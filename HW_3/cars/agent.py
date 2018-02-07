@@ -6,6 +6,8 @@ import numpy as np
 
 from cars.utils import Action
 from learning_algorithms.network import Network
+import learning_algorithms.network
+from cars.Learner import Learner
 
 class Agent(metaclass=ABCMeta):
     @property
@@ -25,6 +27,14 @@ class SimpleCarAgent(Agent):
         self.evaluate_mode = False  # этот агент учится или экзаменутеся? если учится, то False
         self._rays = n_rays
         self.learner = learner
+
+    @classmethod
+    def from_file(cls, fname):
+        nn = learning_algorithms.network.from_file(fname)
+        n_rays = nn.weights[0].shape[1] - 4
+        learner = Learner(n_rays)
+        learner.neural_net = nn
+        return SimpleCarAgent(n_rays, learner)
 
     @property
     def rays(self):

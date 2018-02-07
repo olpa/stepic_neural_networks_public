@@ -265,9 +265,13 @@ class SimpleCarWorld(World):
 
         if len(self.agents) == 1:
             a = self.agents[0]
-            draw_text("Reward: %.3f" % self.learner.reward_history[-1], self._info_surface, scale, self.size,
+            draw_text("Reward: %.3f, Q Value: %.3f" % (self.learner.last_reward, self.learner.last_qvalue), self._info_surface, scale, self.size,
                       text_color=white, bg_color=black)
-            steer, acc = self.learner.chosen_actions_history[-1]
+            try:
+                steer, acc = self.learner.chosen_actions_history[-1]
+            except IndexError:
+                steer = 0
+                acc = 0
             state = self.agent_states[a]
             draw_text("Action: steer.: %.2f, accel: %.2f" % (steer, acc), self._info_surface, scale,
                       self.size, text_color=white, bg_color=black, tlpoint=(self._info_surface.get_width() - 500, 10))
