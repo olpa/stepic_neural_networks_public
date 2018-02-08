@@ -34,7 +34,7 @@ class World(metaclass=ABCMeta):
 class SimpleCarWorld(World):
     COLLISION_PENALTY =  3 # выберите сами
     HEADING_REWARD =  0 # выберите сами
-    WRONG_HEADING_PENALTY = 3  # выберите сами
+    WRONG_HEADING_PENALTY = 1  # выберите сами
     IDLENESS_PENALTY = 1 # выберите сами
     SPEEDING_PENALTY = 1  # выберите сами
     MIN_SPEED = 0.1 # выберите сами
@@ -127,10 +127,10 @@ class SimpleCarWorld(World):
         """
         a = np.sin(angle(-state.position, state.heading))
         heading_reward = 1 if a > 0.1 else a if a > 0 else 0
-        heading_penalty = a if a <= 0 else 0
+        heading_penalty = -1 if a <= 0 else 0
         idle_penalty = 0 if abs(state.velocity) > self.MIN_SPEED else -self.IDLENESS_PENALTY
-        speeding_penalty = 0 if abs(state.velocity) < self.MAX_SPEED else -self.SPEEDING_PENALTY * abs(state.velocity)
-        collision_penalty = - max(abs(state.velocity), 0.1) * int(collision) * self.COLLISION_PENALTY
+        speeding_penalty = 0 if abs(state.velocity) < self.MAX_SPEED else -self.SPEEDING_PENALTY
+        collision_penalty = - int(collision) * self.COLLISION_PENALTY
 
         return heading_reward * self.HEADING_REWARD + heading_penalty * self.WRONG_HEADING_PENALTY + collision_penalty \
                + idle_penalty + speeding_penalty
