@@ -97,10 +97,10 @@ class Network(object):
                 self.update_mini_batch(mini_batch, eta)
             if test_data is not None:
                 success_tests = self.evaluate(test_data)
-                print("Эпоха {0}: {1} / {2}".format(
-                    j, success_tests, n_test))
+                #print("Эпоха {0}: {1} / {2}".format( j, success_tests, n_test))
             else:
-                print("Эпоха {0} завершена".format(j))
+                #print("Эпоха {0} завершена".format(j))
+                pass
         if test_data is not None:
             return success_tests / n_test
 

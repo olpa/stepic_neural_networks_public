@@ -157,7 +157,8 @@ class SimpleCarWorld(World):
         """
         scale = self._prepare_visualization()
         done = False
-        for __ in range(n_episodes) if n_episodes is not None else itertools.count():
+        for i_episode in range(n_episodes) if n_episodes is not None else itertools.count():
+            print("Episode", i_episode)
             self.reset_agents()
             self.learner.start_episode()
             for _ in range(n_steps) if n_steps is not None else itertools.count():

@@ -48,6 +48,7 @@ class Learner:
         for item in (list(history))[::-1]:
             if qvalue is None:
                 qvalue = item.reward
+                print("qvalue in final state:", qvalue)
             else:
                 qvalue = self.calculate_new_qvalue(item.qvalue, item.reward, qvalue)
             callback(item, qvalue)
@@ -65,7 +66,6 @@ class Learner:
         training_data = []
         def on_training_item(item, qvalue):
             x = tuple_to_ndvector(self.state_and_action_to_neunet_vector(item.state, item.action))
-            print("x=", x, ", q=", qvalue) # FIXME
             training_data.append((x, qvalue))
         self.backtrack_qvalues(self.history, on_training_item)
         self.neural_net.SGD(training_data=training_data, epochs=15, mini_batch_size=50, eta=0.05)
