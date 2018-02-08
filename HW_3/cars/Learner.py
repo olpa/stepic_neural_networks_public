@@ -1,14 +1,13 @@
-from collections import deque
+from collections import deque, namedtuple
 from learning_algorithms.network import Network
 import numpy as np
 
+HistoryItem = namedtuple('HistoryItem', ['state', 'action', 'qvalue', 'reward'])
+
 class Learner:
 
-    def __init__(self, n_rays, history_data=int(50000)):
+    def __init__(self, n_rays):
         self.evaluate_mode = False
-        self.sensor_data_history = deque([], maxlen=history_data)
-        self.chosen_actions_history = deque([], maxlen=history_data)
-        self.reward_history = deque([], maxlen=history_data)
         # here +2 is for 2 inputs from elements of Action that we are trying to predict
         self.neural_net = Network([n_rays + 4,
                                    # внутренние слои сети: выберите, сколько и в каком соотношении вам нужно
@@ -17,45 +16,58 @@ class Learner:
                                    (n_rays + 4) // 2,
                                    1],
                                   output_function=lambda x: x, output_derivative=lambda x: 1)
-        self.step = 0
-        self.q_table = {}
-
         self.ALPHA = 0.1
         self.GAMMA = 0.8
+
+        self.reset_history()
+
+    def reset_history(self):
+        self.history = deque([], maxlen=50000)
+
+        self.step = 0
 
         self.last_reward = 0
         self.last_qvalue = 0
 
-    def remember_history(self, sensor_info, best_action):
-        # запомним всё, что только можно: мы хотим учиться на своих ошибках
-        self.sensor_data_history.append(sensor_info)
-        self.chosen_actions_history.append(best_action)
-        self.reward_history.append(0.0)  # мы пока не знаем, какая будет награда, это
-        # откроется при вызове метода receive_feedback внешним миром
+    def start_episode(self):
+        self.reset_history()
 
     def update_qvalue(self, state, action, reward, agent, next_agent_state):
         old_qvalue = self.predict_reward(state, action)
-        estimate_of_optimal = agent.estimate_of_optimal(next_agent_state)
-        new_qvalue = (1 - self.ALPHA) * old_qvalue + self.ALPHA * (reward + self.GAMMA * estimate_of_optimal)
-        stac = self.state_and_action_to_vector(state, action)
-        self.q_table[stac] = new_qvalue
+        item = HistoryItem(state, action, old_qvalue, reward)
+        self.history.append(item)
         self.last_reward = reward
-        self.last_qvalue = new_qvalue
-        print("Q value update. New: %.4f, old: %.4f, reward: %.4f, estimate: %.4f" % (new_qvalue, old_qvalue, reward, estimate_of_optimal))
 
     def update_final_qvalue(self, state, action, reward):
-        stac = self.state_and_action_to_vector(state, action)
-        self.q_table[stac] = reward
+        item = HistoryItem(state, action, reward, reward)
+        self.history.append(item)
         self.last_reward = reward
-        self.last_qvalue = reward
-        print("Q value final: %.4f" % reward)
+
+    def backtrack_qvalues(self, history, callback):
+        qvalue = None
+        for item in (list(history))[::-1]:
+            if qvalue is None:
+                qvalue = item.reward
+            else:
+                qvalue = self.calculate_new_qvalue(item.qvalue, item.reward, qvalue)
+            callback(item, qvalue)
+
+    def calculate_new_qvalue(self, old_qvalue, reward, estimate_of_optimal):
+        new_qvalue = (1 - self.ALPHA) * old_qvalue + self.ALPHA * (reward + self.GAMMA * estimate_of_optimal)
+        print("Q value update. New: %.4f, old: %.4f, reward: %.4f, estimate: %.4f" % (new_qvalue, old_qvalue, reward, estimate_of_optimal))
+        return new_qvalue
 
     def learn(self):
         def tuple_to_ndvector(x):
             v = np.asarray(x)
             v = v.flatten()[:, np.newaxis]
             return v
-        training_data = [(tuple_to_ndvector(x),y) for (x,y) in self.q_table.items()]
+        training_data = []
+        def on_training_item(item, qvalue):
+            x = tuple_to_ndvector(self.state_and_action_to_neunet_vector(item.state, item.action))
+            print("x=", x, ", q=", qvalue) # FIXME
+            training_data.append((x, qvalue))
+        self.backtrack_qvalues(self.history, on_training_item)
         self.neural_net.SGD(training_data=training_data, epochs=15, mini_batch_size=50, eta=0.05)
 
     def receive_feedback(self, reward, train_every=50, reward_depth=7):

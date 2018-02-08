@@ -159,6 +159,7 @@ class SimpleCarWorld(World):
         done = False
         for __ in range(n_episodes) if n_episodes is not None else itertools.count():
             self.reset_agents()
+            self.learner.start_episode()
             for _ in range(n_steps) if n_steps is not None else itertools.count():
                 try:
                     self.transition()
@@ -268,7 +269,7 @@ class SimpleCarWorld(World):
             draw_text("Reward: %.3f, Q Value: %.3f" % (self.learner.last_reward, self.learner.last_qvalue), self._info_surface, scale, self.size,
                       text_color=white, bg_color=black)
             try:
-                steer, acc = self.learner.chosen_actions_history[-1]
+                steer, acc = self.learner.history[-1].action
             except IndexError:
                 steer = 0
                 acc = 0

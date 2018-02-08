@@ -43,7 +43,6 @@ class SimpleCarAgent(Agent):
     def choose_action(self, sensor_info):
         choose_random = (not self.evaluate_mode) and (random.random() < 0.05)
         (action, reward) = self.best_action_and_reward(sensor_info, choose_random=choose_random)
-        self.learner.remember_history(sensor_info, action)
         return action
 
     # what after gamma:
