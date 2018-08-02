@@ -7,9 +7,15 @@ from time import sleep
 import numpy as np
 import pygame
 
+import gym
+
+if __name__ == "__main__":
+    import sys
+    sys.path.append('..')
 from cars.agent import SimpleCarAgent
 from cars.track import plot_map
-from cars.utils import CarState, to_px, rotate, intersect_ray_with_segment, draw_text, angle
+from cars.physics import SimplePhysics
+from cars.utils import CarState, to_px, rotate, intersect_ray_with_segment, draw_text, angle, Action
 from cars.Learner import Learner
 
 import learning_algorithms.network
@@ -17,21 +23,17 @@ import learning_algorithms.network
 black = (0, 0, 0)
 white = (255, 255, 255)
 
+class ActionSpace(gym.Space):
+    def __init__(self):
+        self.actions = [Action(steering, acceleration)
+                for steering in np.linspace(-1, 1, 3)
+                for acceleration in np.linspace(0.75, 0.75, 3)]
 
-class EpisodeFinished(Exception):
-    pass
+    def sample(self):
+        i = random.randint(0, len(self.actions)-1)
+        return self.actions[i]
 
-class World(metaclass=ABCMeta):
-    @abstractmethod
-    def transition(self):
-        pass
-
-    @abstractmethod
-    def run(self):
-        pass
-
-
-class SimpleCarWorld(World):
+class SimpleCarWorld(gym.Env):
     COLLISION_PENALTY =  3 # выберите сами
     HEADING_REWARD =  0 # выберите сами
     WRONG_HEADING_PENALTY = 1  # выберите сами
@@ -43,57 +45,35 @@ class SimpleCarWorld(World):
 
     size = (800, 600)
 
-    def __init__(self, num_agents, car_map, Physics, agent_class, **physics_pars):
+    def __init__(self, car_map):
         """
         Инициализирует мир
-        :param num_agents: число агентов в мире
         :param car_map: карта, на которой всё происходит (см. track.py0
-        :param Physics: класс физики, реализующий столкновения и перемещения
-        :param agent_class: класс агентов в мире
         :param physics_pars: дополнительные параметры, передаваемые в конструктор класса физики
         (кроме car_map, являющейся обязательным параметром конструктора)
         """
-        self.physics = Physics(car_map, **physics_pars)
+        self.physics = SimplePhysics(car_map, timedelta=0.2)
         self.map = car_map
+        self.action_space = ActionSpace()
 
         # создаём агентов
-        self.learner = Learner(self.N_RAYS)
-
-        self.num_agents = num_agents
-        self.agent_class = agent_class
-        self.set_agents(num_agents, agent_class)
 
         self._info_surface = pygame.Surface(self.size)
 
-    def set_agents(self, agents=1, agent_class=None):
-        """
-        Поместить в мир агентов
-        :param agents: int или список Agent, если int -- то обязателен параметр agent_class, так как в мир присвоятся
-         agents агентов класса agent_class; если список, то в мир попадут все агенты из списка
-        :param agent_class: класс создаваемых агентов, если agents - это int
-        """
+        self._car_surfaces = []
+        self._car_images = []
 
-        if type(agents) is int:
-            self.agents = [agent_class(n_rays=self.N_RAYS, learner=self.learner) for _ in range(agents)]
-        elif type(agents) is list:
-            self.agents = agents
-        else:
-            raise ValueError("Parameter agent should be int or list of agents instead of %s" % type(agents))
+        self.reset_cars()
 
-        self._agent_surfaces = []
-        self._agent_images = []
-
-        self.reset_agents()
-
-    def reset_agents(self):
+    def reset_cars(self):
         pos = (self.map[0][0] + self.map[0][1]) / 2
         vel = 0
         heading = rect(-0.3, 1)
 
-        self.agent_states = {a: CarState(pos, vel, heading) for a in self.agents}
-        self.circles = {a: 0 for a in self.agents}
+        self.car_state = CarState(pos, vel, heading)
+        self.circles = 0
 
-    def transition(self):
+    def step(self, action):
         """
         Логика основного цикла:
          подсчёт для каждого агента видения агентом мира,
@@ -101,21 +81,17 @@ class SimpleCarWorld(World):
          смена состояния
          и обработка реакции мира на выбранное действие
         """
-        for a in self.agents:
-            vision = self.vision_for(a) # s_t
+        """
+        for a in self.cars:
             action = a.choose_action(vision) # a_t
-            next_agent_state, collision = self.physics.move(
-                self.agent_states[a], action
-            )
-            self.circles[a] += angle(self.agent_states[a].position, next_agent_state.position) / (2*pi)
-            self.agent_states[a] = next_agent_state
-            reward = self.reward(next_agent_state, collision) # r_t
-            if collision:
-                self.learner.update_final_qvalue(vision, action, reward)
-                raise EpisodeFinished()
-            else:
-                next_vision = self.vision_for(a, next_agent_state)
-                self.learner.update_qvalue(vision, action, reward, a, next_vision)
+            """
+        next_car_state, collision = self.physics.move(
+                self.car_state, action)
+        angle_inc = angle(self.car_state.position,
+                next_car_state.position) / (2*pi)
+        self.circles += angle_inc
+        vision = self.vision_for(self.car_state)
+        return (vision, angle_inc, self.done, None)
 
     def reward(self, state, collision):
         """
@@ -152,20 +128,17 @@ class SimpleCarWorld(World):
 
     def run(self, n_episodes, n_steps=None):
         """
-        Основной цикл мира; по завершении сохраняет текущие веса агента в файл network_config_agent_n_layers_....txt
+        Основной цикл мира; по завершении сохраняет текущие веса агента в файл network_config_car_n_layers_....txt
         :param n_steps: количество шагов цикла; до внешней остановки, если None
         """
         scale = self._prepare_visualization()
         done = False
         for i_episode in range(n_episodes) if n_episodes is not None else itertools.count():
             print("Episode", i_episode)
-            self.reset_agents()
+            self.reset_cars()
             self.learner.start_episode()
             for _ in range(n_steps) if n_steps is not None else itertools.count():
-                try:
-                    self.transition()
-                except EpisodeFinished:
-                    break
+                self.transition()
                 self.visualize(scale)
                 if self._update_display() == pygame.QUIT:
                     done = True
@@ -180,29 +153,29 @@ class SimpleCarWorld(World):
         learning_algorithms.network.to_file(self.learner.neural_net, filename)
         print("Saved neural network parameters to '%s'" % filename)
 
-    def evaluate_agent(self, agent, steps=1000, visual=True):
+    def evaluate_car(self, car, steps=1000, visual=True):
         """
         Прогонка цикла мира для конкретного агента (см. пример использования в комментариях после if _name__ == "__main__")
-        :param agent: SimpleCarAgent
+        :param car: SimpleCarAgent
         :param steps: количество итераций цикла
         :param visual: рисовать картинку или нет
         :return: среднее значение награды агента за шаг
         """
-        agent.evaluate_mode = True
-        self.set_agents([agent])
+        car.evaluate_mode = True
+        self.set_cars([car])
         rewards = []
         if visual:
             scale = self._prepare_visualization()
         for _ in range(steps):
-            vision = self.vision_for(agent)
-            action = agent.choose_action(vision)
-            next_agent_state, collision = self.physics.move(
-                self.agent_states[agent], action
+            vision = self.vision_for(car)
+            action = car.choose_action(vision)
+            next_car_state, collision = self.physics.move(
+                self.car_states[car], action
             )
-            self.circles[agent] += angle(self.agent_states[agent].position, next_agent_state.position) / (2*pi)
-            self.agent_states[agent] = next_agent_state
-            rewards.append(self.eval_reward(next_agent_state, collision))
-            agent.receive_feedback(rewards[-1])
+            self.circles[car] += angle(self.car_states[car].position, next_car_state.position) / (2*pi)
+            self.car_states[car] = next_car_state
+            rewards.append(self.eval_reward(next_car_state, collision))
+            car.receive_feedback(rewards[-1])
             if visual:
                 self.visualize(scale)
                 if self._update_display() == pygame.QUIT:
@@ -211,24 +184,23 @@ class SimpleCarWorld(World):
 
         return np.mean(rewards)
 
-    def vision_for(self, agent, state=None):
+    def vision_for(self, car_state):
         """
         Строит видение мира для каждого агента
-        :param agent: машинка, из которой мы смотрим
+        :param car: машинка, из которой мы смотрим
         :return: список из модуля скорости машинки, направленного угла между направлением машинки
-        и направлением на центр и `agent.rays` до ближайших стен трека (запустите картинку, и станет совсем понятно)
-        :state: Force the position of the agent, otherwise the current position is used
+        и направлением на центр и `car.rays` до ближайших стен трека (запустите картинку, и станет совсем понятно)
+        :state: Force the position of the car, otherwise the current position is used
         """
-        if state is None:
-            state = self.agent_states[agent]
+        state = car_state
         vision = [abs(state.velocity), np.sin(angle(-state.position, state.heading))]
         extras = len(vision)
 
-        delta = pi / (agent.rays - 1)
+        delta = pi / (car.rays - 1)
         start = rotate(state.heading, - pi / 2)
 
         sectors = len(self.map)
-        for i in range(agent.rays):
+        for i in range(car.rays):
             # define ray direction
             ray = rotate(start, i * delta)
 
@@ -249,24 +221,24 @@ class SimpleCarWorld(World):
                     vision[-1] = intersect
 
             assert vision[-1] < np.infty, \
-                "Something went wrong: {}, {}".format(str(state), str(agent.chosen_actions_history[-1]))
-        assert len(vision) == agent.rays + extras, \
-            "Something went wrong: {}, {}".format(str(state), str(agent.chosen_actions_history[-1]))
+                "Something went wrong: {}, {}".format(str(state), str(car.chosen_actions_history[-1]))
+        assert len(vision) == car.rays + extras, \
+            "Something went wrong: {}, {}".format(str(state), str(car.chosen_actions_history[-1]))
         return vision
 
     def visualize(self, scale):
         """
         Рисует картинку. Этот и все "приватные" (начинающиеся с _) методы необязательны для разбора.
         """
-        for i, agent in enumerate(self.agents):
-            state = self.agent_states[agent]
-            surface = self._agent_surfaces[i]
-            rays_lengths = self.vision_for(agent)[-agent.rays:]
-            self._agent_images[i] = [self._draw_ladar(rays_lengths, state, scale),
-                                     self._get_agent_image(surface, state, scale)]
+        for i, car in enumerate(self.cars):
+            state = self.car_states[car]
+            surface = self._car_surfaces[i]
+            rays_lengths = self.vision_for(car)[-car.rays:]
+            self._car_images[i] = [self._draw_ladar(rays_lengths, state, scale),
+                                     self._get_car_image(surface, state, scale)]
 
-        if len(self.agents) == 1:
-            a = self.agents[0]
+        if len(self.cars) == 1:
+            a = self.cars[0]
             draw_text("Reward: %.3f, Q Value: %.3f" % (self.learner.last_reward, self.learner.last_qvalue), self._info_surface, scale, self.size,
                       text_color=white, bg_color=black)
             try:
@@ -274,7 +246,7 @@ class SimpleCarWorld(World):
             except IndexError:
                 steer = 0
                 acc = 0
-            state = self.agent_states[a]
+            state = self.car_states[a]
             draw_text("Action: steer.: %.2f, accel: %.2f" % (steer, acc), self._info_surface, scale,
                       self.size, text_color=white, bg_color=black, tlpoint=(self._info_surface.get_width() - 500, 10))
             draw_text("Inputs: |v|=%.2f, sin(angle): %.2f, circle: %.2f" % (
@@ -282,7 +254,7 @@ class SimpleCarWorld(World):
                       self._info_surface, scale,
                       self.size, text_color=white, bg_color=black, tlpoint=(self._info_surface.get_width() - 500, 50))
 
-    def _get_agent_image(self, original, state, scale):
+    def _get_car_image(self, original, state, scale):
         angle = phase(state.heading) * 180 / pi
         rotated = pygame.transform.rotate(original, angle)
         rectangle = rotated.get_rect()
@@ -311,14 +283,14 @@ class SimpleCarWorld(World):
         screen = pygame.display.set_mode(self.size)
         screen.fill(white)
         scale = plot_map(self.map, screen)
-        for state in self.agent_states.values():
+        for state in self.car_states.values():
             s = pygame.Surface((25, 15))
             s.set_colorkey(white)
             s.fill(white)
             pygame.draw.rect(s, red, pygame.Rect(0, 0, 15, 15))
             pygame.draw.polygon(s, red, [(15, 0), (25, 8), (15, 15)], 0)
-            self._agent_surfaces.append(s)
-            self._agent_images.append([self._get_agent_image(s, state, scale)])
+            self._car_surfaces.append(s)
+            self._car_images.append([self._get_car_image(s, state, scale)])
 
         self._map_surface = screen
         return scale
@@ -331,7 +303,7 @@ class SimpleCarWorld(World):
         display.fill(white)
 
         plot_map(self.map, display)
-        for images in self._agent_images:
+        for images in self._car_images:
             for surf, rectangle in images:
                 display.blit(surf, rectangle)
         display.blit(self._info_surface, (0, 0), None, pygame.BLEND_RGB_SUB)
@@ -340,23 +312,24 @@ class SimpleCarWorld(World):
 
 
 if __name__ == "__main__":
-    from HW_3.cars.physics import SimplePhysics
-    from HW_3.cars.track import generate_map
+    from cars.physics import SimplePhysics
+    from cars.track import generate_map
 
     np.random.seed(3)
     random.seed(3)
     m = generate_map(8, 5, 3, 3)
-    SimpleCarWorld(1, m, SimplePhysics, SimpleCarAgent, timedelta=0.2).run()
+    env = SimpleCarWorld(m)
+    print("Step:", env.step(env.action_space.sample()))
 
     # если вы хотите продолжить обучение уже существующей модели, вместо того,
     # чтобы создавать новый мир с новыми агентами, используйте код ниже:
     # # он загружает агента из файла
-    # agent = SimpleCarAgent.from_file('filename.txt')
+    # car = SimpleCarAgent.from_file('filename.txt')
     # # создаёт мир
     # w = SimpleCarWorld(1, m, SimplePhysics, SimpleCarAgent, timedelta=0.2)
     # # подключает к нему агента
-    # w.set_agents([agent])
+    # w.set_cars([car])
     # # и запускается
     # w.run()
     # # или оценивает агента в этом мире
-    # print(w.evaluate_agent(agent, 500))
+    # print(w.evaluate_car(car, 500))
