@@ -55,6 +55,7 @@ class SimpleCarWorld(gym.Env):
         self.physics = SimplePhysics(car_map, timedelta=0.2)
         self.map = car_map
         self.action_space = ActionSpace()
+        self.done = False
 
         # создаём агентов
 
@@ -196,11 +197,11 @@ class SimpleCarWorld(gym.Env):
         vision = [abs(state.velocity), np.sin(angle(-state.position, state.heading))]
         extras = len(vision)
 
-        delta = pi / (car.rays - 1)
+        delta = pi / (self.N_RAYS - 1)
         start = rotate(state.heading, - pi / 2)
 
         sectors = len(self.map)
-        for i in range(car.rays):
+        for i in range(self.N_RAYS):
             # define ray direction
             ray = rotate(start, i * delta)
 
@@ -222,7 +223,7 @@ class SimpleCarWorld(gym.Env):
 
             assert vision[-1] < np.infty, \
                 "Something went wrong: {}, {}".format(str(state), str(car.chosen_actions_history[-1]))
-        assert len(vision) == car.rays + extras, \
+        assert len(vision) == self.N_RAYS + extras, \
             "Something went wrong: {}, {}".format(str(state), str(car.chosen_actions_history[-1]))
         return vision
 
@@ -233,7 +234,7 @@ class SimpleCarWorld(gym.Env):
         for i, car in enumerate(self.cars):
             state = self.car_states[car]
             surface = self._car_surfaces[i]
-            rays_lengths = self.vision_for(car)[-car.rays:]
+            rays_lengths = self.vision_for(car)[-self.N_RAYS:]
             self._car_images[i] = [self._draw_ladar(rays_lengths, state, scale),
                                      self._get_car_image(surface, state, scale)]
 
@@ -319,6 +320,10 @@ if __name__ == "__main__":
     random.seed(3)
     m = generate_map(8, 5, 3, 3)
     env = SimpleCarWorld(m)
+    print("Step:", env.step(env.action_space.sample()))
+    print("Step:", env.step(env.action_space.sample()))
+    print("Step:", env.step(env.action_space.sample()))
+    print("Step:", env.step(env.action_space.sample()))
     print("Step:", env.step(env.action_space.sample()))
 
     # если вы хотите продолжить обучение уже существующей модели, вместо того,
